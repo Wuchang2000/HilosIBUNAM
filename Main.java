@@ -16,6 +16,7 @@ public class Main {
                 nuevo.start();
             }
         }
+        System.out.println("\t\tEmpieza la simulacion\n\n");
     }
 }
 
