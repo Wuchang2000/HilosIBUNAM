@@ -1,118 +1,145 @@
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
 public class Main {
     public static void main(String args[]) {
-        int numP = 2, numD = 7;
+        //varibles que definen los dias, pabellones y las semanas
+        int numP = 2, numD = 7, semanas = 1;
+        //Objeto compartido
         Registro tabla = new Registro(numP, numD);
-        Temporizador reloj = new Temporizador(tabla, numD);
-        reloj.start();
+        //Ciclo que crea los hilos
         for (int i = 0; i < numP; i++) {
+            //Dos hilos por pabellon
             for (int j = 0; j < 2; j++) {
-                Lector nuevo = new Lector(i, tabla, reloj);
+                Lector nuevo = new Lector(i, tabla, numD, semanas);
+                nuevo.setName("p:"+i+" l:"+j);
                 nuevo.start();
             }
         }
     }
 }
 
-class Temporizador extends Thread {
-    private int dias;
-    private Registro tabla;
-    public Temporizador(Registro tabla, int dias) {
-        this.dias = dias;
-        this.tabla = tabla;
+class Registro {
+    //Matriz de registrtos
+    private int[][] content;
+    //Variables tipo bandera (son atomicas para
+    // que los hilos las manipulen al gusto)
+    public AtomicInteger cont0, cont1, contM;
+    //Constructor
+    public Registro(int numP, int numD) {
+        this.content = new int[numP][numD];
+        this.cont0 = new AtomicInteger(0);
+        this.cont1 = new AtomicInteger(0);
+        this.contM = new AtomicInteger(0);
     }
-    public void run() {
-        for (int j = 0; j < dias; j++) {
-            for (int i = 0; i < 8; i++) {
-                try {
-                    sleep(200);
-                } catch (Exception e) {
-                    System.out.println("No durmio");
-                }
-                synchronized (this){
-                    notifyAll();
-                }
-            }
-            synchronized (this){
-                if (j < 6) {
-                    tabla.incremento();
-                }
-                impresionD(j);
-                notifyAll();
-            }
-        }
-        impresionS();
+    //Metodo sincronizado que inserta los datos en la matriz
+    synchronized public void inserta(int cantidad, int pabellon, int dia) {
+        content[pabellon][dia] += cantidad;
     }
-
-    public void impresionD(int dia) {
-        System.out.println("\tDia "+(dia+1));
-        for (int i = 0; i < this.tabla.content.length; i++) {
-            System.out.println("El pabellon: "+i+" tuvo: "+this.tabla.content[i][dia]);
-        }
+    //Metodo que imprime los datos al dia
+    public void impresionD(int dia, int pabellon) {
+        System.out.println("\tDia "+(dia+1)+"\nEl pabellon: "+pabellon+" tuvo: "+this.content[pabellon][dia]);
     }
-
+    //Metodo que imprime los datos a la semana
     public void impresionS() {
-        System.out.println("Reporte semanal");
+        System.out.println("\n\n\t\tReporte semanal");
         char[] a = {'L','M','M','J','V','S','D'};
-        System.out.print("\t\t|");
+        List<String> pabellonesN = List.of("Jardin Botanico", "Pabellon Nacional");
+        System.out.print(String.format("%20s|", ""));
         for (char c : a) {
             System.out.print(String.format("%-4s|", c));
         }
         System.out.println();
-        for (int i = 0; i < this.tabla.content.length; i++) {
-            System.out.print("Pabellon:"+(i+1)+"\t|");
-            for (int j = 0; j < this.tabla.content[0].length; j++) {
-                System.out.print(String.format("%-4d|",this.tabla.content[i][j]));
+        for (int i = 0; i < pabellonesN.size(); i++) {
+            System.out.print(String.format("%-20s|", pabellonesN.get(i)));
+            for (int j = 0; j < this.content[0].length; j++) {
+                System.out.print(String.format("%-4d|",this.content[i][j]));
             }
             System.out.println();
         }
+        System.out.println("\n\n");
     }
-}
-
-class Registro {
-    public int[][] content;
-    private int dia;
-    public Registro(int numP, int numD) {
-        this.content = new int[numP][numD];
-        this.dia = 0;
-    }
-    synchronized public void inserta(int cantidad, int pabellon) {
-        content[pabellon][this.dia] += cantidad;
-    }
-    public void incremento() {
-        this.dia++;
-    }
-    public int getdia() {
-        return dia;
+    //Metodo que limpia la matriz en caso de haber mas de 1 semana
+    public void limpiaM() {
+        for (int i = 0; i < this.content.length; i++) {
+            for (int j = 0; j < this.content[0].length; j++) {
+                this.content[i][j] = 0;
+            }
+        }
     }
 }
 
 class Lector extends Thread{
-    private int pabellon;
+    private int pabellon, dias, semanas;
     private Registro tabla;
-    private Temporizador reloj;
-    public Lector(int pabellon, Registro tabla, Temporizador reloj) {
+    public Lector(int pabellon, Registro tabla, int dias, int semanas) {
         this.pabellon = pabellon;
         this.tabla = tabla;
-        this.reloj = reloj;
+        this.dias = dias;
+        this.semanas = semanas;
     }
+    //Metodo que define que hara cada hilo
     public void run() {
-        int afluencia = 0;
-        int registro = (int)(Math.random()*100+1);
-        if (registro >= 1 && registro <= 70) {
-            afluencia = (int)(Math.random()*20+1);
-            this.tabla.inserta(afluencia, this.pabellon);
-        }else{
-            this.tabla.inserta(0, this.pabellon);
-        }
-        // System.out.println(getName()+" obuvo: "+afluencia+" el dia:"+this.tabla.getdia());
-        synchronized (reloj){
-            try {
-                reloj.wait();
-                if (reloj.isAlive()) {
-                    this.run();
+        //Ciclo para realizar semanas
+        for (int h = 0; h < this.semanas; h++) {
+            //Ciclo para realizar dias
+            for (int i = 0; i < this.dias; i++) {
+                //Ciclo para realizar horas
+                for (int j = 0; j < 8; j++) {
+                    int afluencia = 0;
+                    //Generamos un valor para saber si registramos visitantes
+                    int registro = (int)(Math.random()*100+1);
+                    if (registro >= 1 && registro <= 70) {
+                        //Generamos un numero de visitantes
+                        afluencia = (int)(Math.random()*20+1);
+                        this.tabla.inserta(afluencia, this.pabellon, i);
+                    }else{
+                        //Generamos un numero de visitantes igual a 0
+                        this.tabla.inserta(0, this.pabellon, i);
+                    }
+                    //Esto imprime los visitantes por hora
+                    // System.out.println(getName()+" obuvo: "+afluencia+" el dia:"+(i+1));
+                    //Dormimos el hilo 1 seg
+                    try {
+                        sleep(1000);
+                    } catch (Exception e) {
+                        System.out.println("No durmio");
+                    }
                 }
-            } catch (Exception e) {
-                System.out.println("Nop");
+                //Sincronizamos la impresion de los dias
+                synchronized (this.tabla) {
+                    //Controlamos el numero de impresiones por pabellon
+                    if (pabellon == 0) {
+                        //Solo un hilo puede imprimir, el que imprime es el ultimo lector
+                        //que pasa por cada pabellon
+                        if (this.tabla.cont0.get() != 0) {
+                            this.tabla.cont0.set(0);
+                            this.tabla.impresionD(i, this.pabellon);
+                        } else {
+                            this.tabla.cont0.getAndIncrement();
+                        }
+                    } else {
+                        //Solo un hilo puede imprimir, el que imprime es el ultimo lector
+                        //que pasa por cada pabellon
+                        if (this.tabla.cont1.get() != 0) {
+                            this.tabla.cont1.set(0);
+                            this.tabla.impresionD(i, this.pabellon);
+                        } else {
+                            this.tabla.cont1.getAndIncrement();
+                        }
+                    }
+                }
+            }
+            //Sincronizamos la impresion de cada semana
+            synchronized (this.tabla) {
+                this.tabla.contM.getAndIncrement();
+                //Esperamos al ultimo hilo y volvemos a empezar
+                if (this.tabla.contM.get() == 4) {
+                    this.tabla.impresionS();
+                    this.tabla.limpiaM();
+                    this.tabla.contM.set(0);
+                    this.tabla.notifyAll();
+                }
             }
         }
     }
