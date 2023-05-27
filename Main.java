@@ -25,6 +25,8 @@ class Registro {
     //Variables tipo bandera (son atomicas para
     // que los hilos las manipulen al gusto)
     public AtomicInteger cont0, cont1, contM;
+    //Lista de pabellones
+    List<String> pabellonesN = List.of("Jardin Botanico", "Pabellon Nacional");
     //Constructor
     public Registro(int numP, int numD) {
         this.content = new int[numP][numD];
@@ -38,13 +40,13 @@ class Registro {
     }
     //Metodo que imprime los datos al dia
     public void impresionD(int dia, int pabellon) {
-        System.out.println("\tDia "+(dia+1)+"\nEl pabellon: "+pabellon+" tuvo: "+this.content[pabellon][dia]);
+        System.out.println("\tDia "+(dia+1)+"\nEl "+pabellonesN.get(pabellon)+" tuvo: "+this.content[pabellon][dia]);
     }
     //Metodo que imprime los datos a la semana
     public void impresionS() {
         System.out.println("\n\n\t\tReporte semanal");
         char[] a = {'L','M','M','J','V','S','D'};
-        List<String> pabellonesN = List.of("Jardin Botanico", "Pabellon Nacional");
+        
         System.out.print(String.format("%20s|", ""));
         for (char c : a) {
             System.out.print(String.format("%-4s|", c));
