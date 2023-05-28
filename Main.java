@@ -144,10 +144,9 @@ class Lector extends Thread{
                     this.tabla.notifyAll();
                 }else{
                     try {
-                        System.out.println("Se va a esperar el "+this.getName());
                         this.tabla.wait();
                     } catch (Exception e) {
-                        System.out.println(e.toString());
+                        System.out.println("No espero");
                     }
                 }
             }
