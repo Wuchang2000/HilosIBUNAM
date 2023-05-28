@@ -4,7 +4,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Main {
     public static void main(String args[]) {
         //varibles que definen los dias, pabellones y las semanas
-        int numP = 2, numD = 7, semanas = 1;
+        int numP = 2, numD = 7, semanas = 2;
         //Objeto compartido
         Registro tabla = new Registro(numP, numD);
         //Ciclo que crea los hilos
@@ -88,7 +88,7 @@ class Lector extends Thread{
             //Ciclo para realizar dias
             for (int i = 0; i < this.dias; i++) {
                 //Ciclo para realizar horas
-                for (int j = 0; j < 8; j++) {
+                for (int j = 0; j < 4; j++) {
                     int afluencia = 0;
                     //Generamos un valor para saber si registramos visitantes
                     int registro = (int)(Math.random()*100+1);
@@ -142,6 +142,13 @@ class Lector extends Thread{
                     this.tabla.limpiaM();
                     this.tabla.contM.set(0);
                     this.tabla.notifyAll();
+                }else{
+                    try {
+                        System.out.println("Se va a esperar el "+this.getName());
+                        this.tabla.wait();
+                    } catch (Exception e) {
+                        System.out.println(e.toString());
+                    }
                 }
             }
         }
